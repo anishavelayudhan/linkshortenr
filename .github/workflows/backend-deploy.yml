@@ -1,4 +1,4 @@
-name: Deploy backend API to AWS ECS
+name: Build Backend API
 
 on:
   push:
@@ -20,43 +20,42 @@ jobs:
           java-version: '23'
           distribution: 'temurin'
           
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+          
       - name: Build Spring Boot app
         run: |
           cd backend
-          mvn clean package -DskipTests
+          mvn clean compile -DskipTests
         
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, tag, and push docker image to Amazon ECR
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: link-shortener
+      - name: Run tests
         run: |
           cd backend
-          docker build -t $REGISTRY/$REPOSITORY:latest .
-          docker push $REGISTRY/$REPOSITORY:latest
-
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+          mvn test
+        
+      - name: Build JAR file
+        run: |
+          cd backend
+          mvn package -DskipTests
+        
+      - name: Build Docker image
+        run: |
+          cd backend
+          docker build -t linkshortenr:latest .
+        
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          task-definition-family: ${{ secrets.ECS_TASK_DEFINITION }}
-          container-name: ${{ secrets.CONTAINER_NAME }}
-          image: ${{ secrets.ECR_REPOSITORY_URI }}:latest
-
-      - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ secrets.ECS_SERVICE }}
-          cluster: ${{ secrets.ECS_CLUSTER }}
-          wait-for-service-stability: true
+          name: backend-jar
+          path: backend/target/linkshortenr-1.0.0.jar
+          retention-days: 7
+          
+      - name: Build status
+        run: |
+          echo "✅ Backend build completed successfully!"
+          echo "📦 JAR file: linkshortenr-1.0.0.jar"
+          echo "🐳 Docker image: linkshortenr:latest"

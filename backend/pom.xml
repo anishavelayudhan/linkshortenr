@@ -8,11 +8,11 @@
 		<version>3.4.3</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.project</groupId>
-	<artifactId>link-shortener</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>link-shortener</name>
-	<description>Demo project for Spring Boot</description>
+	<groupId>com.linkshortenr</groupId>
+	<artifactId>linkshortenr</artifactId>
+	<version>1.0.0</version>
+	<name>linkshortenr</name>
+	<description>Linkshortenr API</description>
 	<url/>
 	<licenses>
 		<license/>
